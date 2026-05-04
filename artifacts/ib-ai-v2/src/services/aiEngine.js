@@ -130,24 +130,65 @@ function generateNaturalResponse(input, history, tone) {
   return `${ctx}that's worth thinking through carefully. Start by defining the outcome precisely — vague inputs tend to produce vague results. What's the specific context you're working in?`;
 }
 
+// ─── Direct query handler (highest priority — bypasses intent/tone) ───────────
+
+function isDirectQuery(text) {
+  const t = text.toLowerCase();
+  return (
+    t.includes('what time') ||
+    t.includes('what is today') ||
+    t.includes('date') ||
+    t.trim() === 'tell me more' ||
+    t.trim() === 'what can you do' ||
+    t.trim() === 'who are you'
+  );
+}
+
+function handleDirectQuery(input) {
+  const text = input.toLowerCase().trim();
+
+  if (text.includes('what time')) {
+    return `Current time: ${new Date().toLocaleTimeString()}`;
+  }
+  if (text.includes('what is today') || text.includes("what's today") || (text.includes('date') && text.length < 20)) {
+    return `Today is ${new Date().toDateString()}`;
+  }
+  if (text === 'tell me more') {
+    return 'What specifically would you like me to explain?';
+  }
+  if (text.includes('what can you do')) {
+    return 'I can help with explanations, writing, coding, ideas, and prompt generation.';
+  }
+  if (text.includes('who are you')) {
+    return "I'm IB AI — your assistant for learning, writing, and problem-solving.";
+  }
+
+  return null;
+}
+
 // ─── Main response router ─────────────────────────────────────────────────────
 
 function generateAIResponse(input, history = []) {
+  // 1. Direct layer — handles simple factual/meta queries instantly
+  const direct = handleDirectQuery(input);
+  if (direct) return direct;
+
+  // 2. Intent + tone detection
   const intent = detectIntent(input);
   const tone = detectTone(input);
 
   switch (intent) {
     case 'greeting':
-      return "Hey! I'm IB AI — what are you working on?";
+      return "Hey! What are you working on?";
 
     case 'joke':
-      return "Why did the developer go broke? Because they used up all their cache. 😄\n\nWant another, or can I help with something?";
+      return "Why did the developer go broke? Too many cache problems. 😄\n\nWant another, or can I help with something?";
 
     case 'thanks':
       return "Anytime. What else can I help with?";
 
     case 'capability':
-      return "I can help you explain things, solve problems, write and edit content, debug code, and generate better prompts. What do you want to tackle?";
+      return "I can help with explanations, writing, coding, and ideas.";
 
     case 'prompt_engineering':
       return generatePromptResponse(input);
