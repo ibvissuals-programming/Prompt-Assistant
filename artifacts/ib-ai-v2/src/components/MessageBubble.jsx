@@ -2,41 +2,43 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Copy, Check, Cpu, User } from 'lucide-react';
 
+function renderBold(line) {
+  return line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      return <strong key={j} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
+    }
+    return <span key={j}>{part}</span>;
+  });
+}
+
 function renderContent(text) {
-  const lines = text.split('\n');
-  return lines.map((line, i) => {
+  return text.split('\n').map((line, i) => {
     if (!line.trim()) return <br key={i} />;
 
-    const boldProcessed = line.split(/(\*\*[^*]+\*\*)/g).map((part, j) => {
-      if (part.startsWith('**') && part.endsWith('**')) {
-        return <strong key={j} className="font-semibold text-foreground">{part.slice(2, -2)}</strong>;
-      }
-      return part;
-    });
+    if (line.trim().startsWith('```')) return null;
 
     if (/^\d+\./.test(line.trim())) {
+      const num = line.match(/^\d+/)[0];
+      const rest = line.replace(/^\d+\.\s*/, '');
       return (
         <div key={i} className="flex gap-2 my-0.5">
-          <span className="text-primary font-medium shrink-0">{line.match(/^\d+/)[0]}.</span>
-          <span>{boldProcessed.map((p, j) => typeof p === 'string' ? p.replace(/^\d+\.\s*/, '') : p)}</span>
+          <span className="text-primary font-medium shrink-0">{num}.</span>
+          <span>{renderBold(rest)}</span>
         </div>
       );
     }
 
-    if (line.trim().startsWith('-')) {
+    if (line.trim().startsWith('- ') || line.trim().startsWith('– ')) {
+      const rest = line.replace(/^[-–]\s*/, '');
       return (
         <div key={i} className="flex gap-2 my-0.5">
-          <span className="text-primary shrink-0 mt-1">–</span>
-          <span>{boldProcessed.map((p, j) => typeof p === 'string' ? p.replace(/^-\s*/, '') : p)}</span>
+          <span className="text-primary shrink-0 mt-0.5">–</span>
+          <span>{renderBold(rest)}</span>
         </div>
       );
     }
 
-    if (line.trim().startsWith('```')) {
-      return null;
-    }
-
-    return <p key={i} className="leading-relaxed">{boldProcessed}</p>;
+    return <p key={i} className="leading-relaxed">{renderBold(line)}</p>;
   });
 }
 
@@ -53,9 +55,9 @@ export function MessageBubble({ message, index }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, delay: index * 0.03 }}
+      transition={{ duration: 0.22, delay: Math.min(index * 0.03, 0.18) }}
       className={`flex gap-3 group ${isUser ? 'flex-row-reverse' : 'flex-row'}`}
       data-testid={`message-bubble-${message.id}`}
     >

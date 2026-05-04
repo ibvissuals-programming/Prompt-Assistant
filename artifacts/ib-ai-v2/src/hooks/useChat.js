@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getChats, saveChats, setActiveChat, createDefaultChats } from '../utils/storage';
+import { getChats, saveChats, createDefaultChats } from '../utils/storage';
 import { generateResponse, detectMode } from '../services/aiEngine';
 
 export function useChat(username) {
