@@ -43,7 +43,7 @@ export function generateAIResponse(input, history = []) {
   const hasContext = Array.isArray(history) && history.filter(m => m.role === 'user').length > 1;
   const ctx = hasContext ? 'Building on what we discussed — ' : '';
 
-  // ── Direct / factual queries ──
+  // ── Direct / factual queries (highest priority) ──
   if (text.includes('what time') || text.includes('current time')) {
     return `Current time: ${new Date().toLocaleTimeString()}`;
   }
@@ -61,14 +61,14 @@ export function generateAIResponse(input, history = []) {
   }
 
   // ── Simple social intents ──
-  if (text.match(/^(hello|hi|hey|howdy|sup)[\s!?.,]?$/) || text.includes('hello there') || text.includes('hi there')) {
-    return "Hey! What are you working on?";
+  if (text.includes('hello') || text.includes('hi') || text.includes('hey')) {
+    return "Hey 👋 What's up?";
   }
   if (text.includes('joke') || text.includes('funny')) {
-    return "Why did the developer go broke? Because he used up all his cache. 😄\n\nWant another, or can I help with something?";
+    return "Why did the developer go broke? Because he used up all his cache 😂";
   }
   if (text.includes('thank')) {
-    return "Anytime. What else can I help with?";
+    return "Anytime 👍";
   }
 
   // ── Prompt engineering ──
@@ -78,12 +78,12 @@ export function generateAIResponse(input, history = []) {
 
   // ── Topic: machine learning ──
   if (text.includes('machine learning') || text.includes('neural network') || text.includes('deep learning')) {
-    return `${ctx}neural networks learn by making a prediction, measuring how wrong it was, then nudging every parameter slightly in the direction that reduces the error — repeated millions of times.\n\nThe key steps: forward pass → compute loss → backpropagate gradients → optimizer updates weights.\n\nWant me to go deeper on a specific part — architectures, training dynamics, or a real-world example?`;
+    return `${ctx}neural networks learn by making a prediction, measuring how wrong it was, then nudging every parameter in the direction that reduces the error — repeated millions of times.\n\nForward pass → compute loss → backpropagate gradients → optimizer updates weights.\n\nWant me to go deeper on a specific part?`;
   }
 
   // ── Topic: AI / LLMs ──
   if (text.includes('artificial intelligence') || text.includes('language model') || text.includes('llm') || text.includes('chatgpt') || text.includes('gpt')) {
-    return `${ctx}large language models are trained to predict the next token given all previous context. Do that at scale across enough text and the model develops surprisingly general capabilities.\n\nThe transformer architecture is what makes it work — self-attention lets every token in the sequence attend to every other token, which handles long-range dependencies far better than earlier approaches.\n\nAnything specific you want to explore — how they're trained, how to prompt them well, or something else?`;
+    return `${ctx}large language models are trained to predict the next token given all previous context. At scale, this produces surprisingly general capabilities.\n\nSelf-attention is the key mechanism — every token can attend to every other token, which handles long-range dependencies far better than earlier approaches.\n\nAnything specific — training, prompting, or applications?`;
   }
 
   // ── Topic: code ──
@@ -92,22 +92,22 @@ export function generateAIResponse(input, history = []) {
     const example = lang === 'python'
       ? `def process(items):\n    return [item.strip() for item in items if item]`
       : `const process = (items) =>\n  items.filter(Boolean).map(s => s.trim());`;
-    return `${ctx}here's a clean example:\n\n\`\`\`${lang}\n${example}\n\`\`\`\n\nKey principles: early filtering, single responsibility, no side effects.\n\nShare your code or describe the problem and I'll tailor the solution.`;
+    return `${ctx}here's a clean example:\n\n\`\`\`${lang}\n${example}\n\`\`\`\n\nShare your code or describe the problem and I'll tailor the solution.`;
   }
 
   // ── Topic: writing ──
   if (text.includes('write') || text.includes('essay') || text.includes('blog') || text.includes('article') || text.includes('draft') || text.includes('creative')) {
-    return `${ctx}strong writing starts with one clear thesis — a single sentence that tells the reader exactly what they'll walk away believing.\n\n- Open with a specific detail, not a broad statement.\n- Each paragraph earns one idea.\n- Close by looping back to your opening.\n\nShare your draft or topic and I'll give you specific, line-level feedback.`;
+    return `${ctx}strong writing starts with one clear thesis — a sentence that anchors everything else.\n\n- Open with a specific detail, not a broad statement.\n- Each paragraph earns one idea.\n- Close by looping back to your opening.\n\nShare your draft or topic and I'll give specific feedback.`;
   }
 
-  // ── Topic: explain ──
+  // ── Topic: explain / questions ──
   if (text.includes('explain') || text.startsWith('what is') || text.startsWith('how does') || text.startsWith('why does') || text.startsWith('what are')) {
     const topic = input.replace(/explain|what is|what are|how does|why does|please|can you/gi, '').trim();
-    return `${ctx}${topic ? `Here's a clear breakdown of ${topic}:` : "Here's a clear breakdown:"}\n\nAt its core, it's a process or mechanism that produces a specific outcome. Context shapes the result — small changes in input often lead to meaningfully different outputs.\n\n${topic ? `Want me to go deeper with a technical explanation, a real-world analogy, or a practical example of ${topic}?` : 'Want a technical breakdown, analogy, or practical example?'}`;
+    return `${ctx}${topic ? `Here's a clear breakdown of ${topic}:` : "Here's a clear breakdown:"}\n\nAt its core, it's a mechanism that produces a specific outcome — context and constraints shape the result significantly.\n\n${topic ? `Want a technical explanation, real-world analogy, or practical example of ${topic}?` : 'Want theory, an analogy, or a practical example?'}`;
   }
 
-  // ── Fallback — conversational, never echoes input ──
-  return `${ctx}good question. To give you the most useful answer, it helps to know a bit more — what's the context you're working in, and what outcome are you going for?\n\nShare more detail and I'll give you something specific.`;
+  // ── Fallback ──
+  return `I get what you're asking about — "${input.length > 60 ? input.slice(0, 60) + '...' : input}".\n\nHere's how I can help:\n- Explain it simply\n- Give examples\n- Break it down step by step\n\nTell me what you want 👍`;
 }
 
 // ─── Safety wrapper (exported, called by useChat) ─────────────────────────────
