@@ -118,6 +118,10 @@ export default function Login() {
             Create one
           </button>
         </p>
+
+        <p className="text-center text-xs text-muted-foreground/50 mt-5 leading-relaxed max-w-xs mx-auto">
+          Accounts are stored locally in this browser. If you clear browser data or forget your password, the account cannot be recovered.
+        </p>
       </motion.div>
     </div>
   );
