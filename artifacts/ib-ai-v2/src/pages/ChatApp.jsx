@@ -72,6 +72,7 @@ export default function ChatApp() {
           onMenuToggle={() => setMobileSidebarOpen(o => !o)}
           mobileSidebarOpen={mobileSidebarOpen}
           activeTitle={activeChatId ? chats[activeChatId]?.title : undefined}
+          messages={messages}
         />
 
         <ChatWindow messages={messages} isTyping={isTyping} />
