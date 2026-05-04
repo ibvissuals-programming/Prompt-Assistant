@@ -1,6 +1,8 @@
 const USERS_KEY = 'ib_users';
 const SESSION_KEY = 'ib_current_user';
 
+const normalizeUsername = (str) => str.trim().toLowerCase();
+
 export function getUsers() {
   try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; }
   catch { return []; }
@@ -12,21 +14,27 @@ export function saveUsers(users) {
 
 export function signup(username, password) {
   const users = getUsers();
-  if (users.find(u => u.username === username)) {
+  const cleanUsername = normalizeUsername(username);
+  const cleanPassword = password.trim();
+
+  if (users.find(u => u.username === cleanUsername)) {
     return { success: false, error: 'Username already exists' };
   }
-  users.push({ username, password });
+  users.push({ username: cleanUsername, password: cleanPassword });
   saveUsers(users);
   return { success: true };
 }
 
 export function login(username, password) {
   const users = getUsers();
-  const user = users.find(u => u.username === username && u.password === password);
+  const cleanUsername = normalizeUsername(username);
+  const cleanPassword = password.trim();
+
+  const user = users.find(u => u.username === cleanUsername && u.password === cleanPassword);
   if (!user) {
     return { success: false, error: 'Invalid username or password' };
   }
-  localStorage.setItem(SESSION_KEY, username);
+  localStorage.setItem(SESSION_KEY, cleanUsername);
   return { success: true };
 }
 
