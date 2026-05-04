@@ -1,8 +1,8 @@
-// --- Helpers ---
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 const normalize = (text) => text.toLowerCase().trim().replace(/\s+/g, ' ');
 
-// --- Intent detection ---
+// ─── Intent detection ─────────────────────────────────────────────────────────
 
 function detectIntent(input) {
   const text = normalize(input);
@@ -33,13 +33,24 @@ function detectIntent(input) {
   return 'chat';
 }
 
-// --- Exported mode label (used by useChat + MessageBubble for badge) ---
+// ─── Tone detection ───────────────────────────────────────────────────────────
+
+function detectTone(input) {
+  const text = normalize(input);
+  if (text.includes('joke') || text.includes('funny') || text.includes('lol')) return 'casual';
+  if (text.includes('explain') || text.includes('what is') || text.includes('how does')) return 'clear';
+  if (text.includes('help') || text.includes('how do i') || text.includes('how can i') || text.includes('i need')) return 'helpful';
+  if (text.includes('generate') || text.includes('prompt') || text.includes('write')) return 'structured';
+  return 'natural';
+}
+
+// ─── Exported mode label (used by useChat + MessageBubble badge) ──────────────
 
 export function detectMode(input) {
   return detectIntent(input) === 'prompt_engineering' ? 'prompt_engineering' : 'chat';
 }
 
-// --- Response generators ---
+// ─── Prompt engineering ───────────────────────────────────────────────────────
 
 function generatePromptResponse(input) {
   const cleaned = input
@@ -48,69 +59,105 @@ function generatePromptResponse(input) {
     .trim();
 
   const subject = cleaned || 'your task';
+  const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-  return `**1. Improved Prompt:**\nAct as an expert in the relevant domain. ${subject.charAt(0).toUpperCase() + subject.slice(1).replace(/\.?$/, '')}. Be specific and structured. Define the desired output format and include any constraints or context needed for a precise result.\n\n**2. Why This Is Better:**\nThe original lacked role definition and output constraints. This version tells the AI who to be, what to produce, and how to format it — reducing vague or off-target responses.\n\n**3. Variations:**\n- Concise version: "${subject.length > 60 ? subject.slice(0, 60) + '...' : subject} — answer in 3 bullet points."\n- Detailed version: "${subject.charAt(0).toUpperCase() + subject.slice(1)} — provide a step-by-step breakdown with examples."`;
+  return `**Improved Prompt:**\nAct as an expert in the relevant domain. ${cap(subject).replace(/\.?$/, '')}. Be specific and structured — define the desired output format and include any constraints needed for a precise result.\n\n**Why this works:**\nClearer role definition, explicit output constraints, and reduced ambiguity. The model knows exactly who to be, what to produce, and how to format it.\n\n**Variations:**\n- Concise: "${cap(subject)} — summarize in 3 bullet points."\n- Detailed: "${cap(subject)} — provide a step-by-step breakdown with examples."`;
 }
 
-function generateChatResponse(input, history) {
+// ─── Natural chat response (tone-aware, never echoes input) ───────────────────
+
+function generateNaturalResponse(input, history, tone) {
   const intent = detectIntent(input);
   const hasContext = history && history.filter(m => m.role === 'user').length > 1;
-  const contextPrefix = hasContext ? 'Building on what we discussed — ' : '';
+  const ctx = hasContext ? 'Building on what we discussed — ' : '';
 
+  // ── Topic: machine learning ──
   if (intent === 'ml') {
-    return `${contextPrefix}neural networks learn by adjusting weights through backpropagation — computing gradients of a loss function and stepping in the direction that reduces error.\n\n1. Forward pass: input flows through layers to produce a prediction.\n2. Loss computation: the prediction is compared to ground truth.\n3. Backward pass: gradients flow back through layers via the chain rule.\n4. Weight update: an optimizer (SGD, Adam) applies the gradients.\n\n**Which aspect would you like to go deeper on — architectures, training dynamics, or a specific application?**`;
+    if (tone === 'casual') {
+      return `${ctx}basically, neural nets learn by making a guess, seeing how wrong they were, and nudging their settings to do better next time. Repeat a million times and you've got a trained model.\n\nWant me to go deeper on any part?`;
+    }
+    if (tone === 'clear') {
+      return `${ctx}here's the core loop:\n\n1. **Forward pass** — input flows through layers to produce a prediction.\n2. **Loss** — the prediction is compared to ground truth.\n3. **Backprop** — gradients flow back through layers via the chain rule.\n4. **Update** — an optimizer (SGD, Adam) adjusts the weights.\n\nWhich part would you like to dig into?`;
+    }
+    return `${ctx}neural networks learn through backpropagation — computing gradients of a loss function and stepping in the direction that reduces error. The transformer architecture extended this with self-attention, letting every token attend to every other token in context.\n\nAny specific area you want to explore — architectures, training, or applications?`;
   }
 
+  // ── Topic: AI / LLMs ──
   if (intent === 'ai') {
-    return `${contextPrefix}modern large language models are trained on vast corpora using self-supervised objectives — predicting the next token given all previous context.\n\nThe transformer architecture underpins most of them: self-attention lets each token attend to every other token, capturing long-range dependencies that older RNN approaches couldn't.\n\n**Do you want to explore training, inference, fine-tuning, or prompting strategies?**`;
+    if (tone === 'casual') {
+      return `${ctx}LLMs are basically very good at pattern-matching across enormous amounts of text — they learn to predict what comes next, and it turns out that scales into something that feels like reasoning.\n\nAnything specific you're curious about?`;
+    }
+    return `${ctx}modern large language models are trained on vast corpora using self-supervised objectives — predicting the next token given all previous context. The transformer's self-attention mechanism is what makes this scale: each token can attend to every other token, capturing long-range dependencies.\n\nWant to explore training, inference, fine-tuning, or prompting?`;
   }
 
+  // ── Topic: code ──
   if (intent === 'code') {
     const lang = normalize(input).includes('python') ? 'python' : normalize(input).includes('typescript') ? 'typescript' : 'javascript';
     const example = lang === 'python'
       ? `def process(items):\n    return [item.strip() for item in items if item]`
       : `const process = (items) =>\n  items.filter(Boolean).map(s => s.trim());`;
-    return `${contextPrefix}here is a clean example:\n\n\`\`\`${lang}\n${example}\n\`\`\`\n\nKey principles: early filtering, single responsibility, no side effects.\n\n**Share your code or describe the specific problem and I will tailor the solution.**`;
+
+    if (tone === 'helpful') {
+      return `${ctx}let's work through this step by step. Here's a clean starting point:\n\n\`\`\`${lang}\n${example}\n\`\`\`\n\nShare your code or describe what it's supposed to do and I'll tailor it to your situation.`;
+    }
+    return `${ctx}here's a clean example:\n\n\`\`\`${lang}\n${example}\n\`\`\`\n\nKey principles: early filtering, single responsibility, no side effects. What's the specific problem you're solving?`;
   }
 
+  // ── Topic: writing ──
   if (intent === 'writing') {
-    return `${contextPrefix}strong writing starts with a clear thesis — one sentence that tells the reader exactly what they will walk away believing.\n\n1. Open with a specific, concrete detail (not a broad statement).\n2. Build each paragraph around one idea with supporting evidence.\n3. Close by looping back to the opening — create resolution.\n\n**Share your draft or topic and I will give specific, line-level feedback.**`;
+    if (tone === 'casual') {
+      return `${ctx}good writing is really just clear thinking on paper — start with one sentence that says exactly what you want the reader to walk away believing, then build everything around that.\n\nShare what you're working on and I'll give you specific feedback.`;
+    }
+    return `${ctx}strong writing starts with a clear thesis — one sentence that anchors the whole piece.\n\n- Open with a specific, concrete detail, not a broad statement.\n- Each paragraph earns one idea with evidence.\n- Close by looping back to the opening.\n\nShare your draft or topic and I'll give line-level feedback.`;
   }
 
+  // ── Topic: explain ──
   if (intent === 'explain') {
     const topic = input.replace(/explain|what is|how does|why does|please|can you/gi, '').trim();
-    return `${contextPrefix}let me break that down:\n\n1. At its core, the concept involves a mechanism that drives the outcome you are asking about.\n2. Context is the key variable — small changes in inputs produce significantly different results.\n3. In practice, this manifests as a pattern you can observe and test.\n\n${topic ? `**What specifically about "${topic}" would you like to explore — theory, examples, or practical use?**` : '**Would you like a technical breakdown, a real-world analogy, or a concrete example?**'}`;
+    if (tone === 'clear') {
+      return `${ctx}${topic ? `Here's a clear breakdown of ${topic}:` : "Here's a clear breakdown:"}\n\nAt its core, it's a mechanism that produces a specific outcome under certain conditions. The key variable is context — small changes in inputs often produce meaningfully different results.\n\n${topic ? `Want me to go deeper on the theory, show a real example, or explain the practical use of ${topic}?` : 'Want theory, examples, or practical use?'}`;
+    }
+    return `${ctx}${topic ? `Let me break down ${topic}:` : 'Let me break that down:'}\n\nThe concept works by establishing a relationship between inputs and outputs through a defined mechanism. Context and constraints shape the result significantly.\n\n${topic ? `Would a real-world analogy or a technical breakdown help more for ${topic}?` : 'Would a real-world analogy or technical breakdown help?'}`;
   }
 
-  // Generic fallback — never echo the input back
-  return `${contextPrefix}that is worth thinking through carefully. Here is a structured approach:\n\n1. Define the problem precisely — vague inputs produce vague outputs.\n2. Identify what success looks like before choosing a method.\n3. Start with the simplest version that works, then iterate.\n\n**Tell me more about the context and I will give you a sharper, more specific answer.**`;
+  // ── Generic fallback ──
+  if (tone === 'casual') {
+    return `${ctx}good question — the short answer is that it depends on context, but the clearest path is usually to start simple and iterate.\n\nTell me more about what you're trying to do and I'll give you a more direct answer.`;
+  }
+  if (tone === 'helpful') {
+    return `${ctx}let's figure this out. A good starting point:\n\n- What outcome are you aiming for?\n- What have you already tried?\n- Where exactly are you stuck?\n\nThe more context you share, the more specific I can be.`;
+  }
+  return `${ctx}that's worth thinking through carefully. Start by defining the outcome precisely — vague inputs tend to produce vague results. What's the specific context you're working in?`;
 }
+
+// ─── Main response router ─────────────────────────────────────────────────────
 
 function generateAIResponse(input, history = []) {
   const intent = detectIntent(input);
+  const tone = detectTone(input);
 
   switch (intent) {
     case 'greeting':
-      return "Hey! I'm IB AI — ask me anything. I can answer questions, explain topics, write content, or help you engineer better prompts.";
+      return "Hey! I'm IB AI — what are you working on?";
 
     case 'joke':
-      return "Why did the developer go broke? Because they used up all their cache. 😄\n\n**Want another one, or can I help you with something more serious?**";
+      return "Why did the developer go broke? Because they used up all their cache. 😄\n\nWant another, or can I help with something?";
 
     case 'thanks':
-      return "You're welcome — glad I could help. Anything else on your mind?";
+      return "Anytime. What else can I help with?";
 
     case 'capability':
-      return "I can help you with:\n\n1. Answering questions on any topic\n2. Explaining technical concepts clearly\n3. Writing and editing content\n4. Generating and optimizing AI prompts\n5. Reviewing and debugging code\n\n**What would you like to start with?**";
+      return "I can help you explain things, solve problems, write and edit content, debug code, and generate better prompts. What do you want to tackle?";
 
     case 'prompt_engineering':
       return generatePromptResponse(input);
 
     default:
-      return generateChatResponse(input, history);
+      return generateNaturalResponse(input, history, tone);
   }
 }
 
-// --- Safety wrapper (exported, used by useChat) ---
+// ─── Safety wrapper (exported, called by useChat) ─────────────────────────────
 
 export function safeAIResponse(input, history) {
   try {
