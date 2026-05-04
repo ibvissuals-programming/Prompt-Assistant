@@ -1,36 +1,45 @@
-import { storage } from '../utils/storage';
+const USERS_KEY = 'ib_users';
+const SESSION_KEY = 'ib_current_user';
 
-export const getUsers = () => storage.get('ib_users') || [];
-export const saveUsers = (users) => storage.set('ib_users', users);
+export function getUsers() {
+  try { return JSON.parse(localStorage.getItem(USERS_KEY)) || []; }
+  catch { return []; }
+}
 
-export const signup = (username, password) => {
+export function saveUsers(users) {
+  localStorage.setItem(USERS_KEY, JSON.stringify(users));
+}
+
+export function signup(username, password) {
   const users = getUsers();
   if (users.find(u => u.username === username)) {
     return { success: false, error: 'Username already exists' };
   }
-  const newUser = { username, password: btoa(password) };
-  saveUsers([...users, newUser]);
+  users.push({ username, password });
+  saveUsers(users);
   return { success: true };
-};
+}
 
-export const login = (username, password) => {
+export function login(username, password) {
   const users = getUsers();
-  const user = users.find(u => u.username === username && u.password === btoa(password));
-  if (user) {
-    storage.set('ib_session', { username: user.username, loginAt: Date.now() });
-    return { success: true };
+  const user = users.find(u => u.username === username && u.password === password);
+  if (!user) {
+    return { success: false, error: 'Invalid username or password' };
   }
-  return { success: false, error: 'Invalid credentials' };
-};
+  localStorage.setItem(SESSION_KEY, username);
+  return { success: true };
+}
 
-export const logout = () => {
-  storage.remove('ib_session');
-};
+export function logout() {
+  localStorage.removeItem(SESSION_KEY);
+}
 
-export const getCurrentUser = () => {
-  return storage.get('ib_session');
-};
+// Returns {username} object so useAuth + all components work without changes
+export function getCurrentUser() {
+  const username = localStorage.getItem(SESSION_KEY);
+  return username ? { username } : null;
+}
 
-export const isAuthenticated = () => {
-  return !!getCurrentUser();
-};
+export function isAuthenticated() {
+  return !!localStorage.getItem(SESSION_KEY);
+}
