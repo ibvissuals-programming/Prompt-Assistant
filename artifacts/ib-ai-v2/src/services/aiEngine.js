@@ -91,11 +91,7 @@ function handleDirect(input) {
     return "I can explain topics, answer questions, and help you learn anything step-by-step.";
   }
 
-  if (
-    text.includes("generate a prompt") ||
-    text.includes("improve this prompt") ||
-    text.includes("optimize prompt")
-  ) {
+  if (isPromptRequest(input)) {
     const cleaned = input
       .replace(/generate a prompt|improve this prompt|optimize prompt/gi, "")
       .trim();
@@ -118,8 +114,19 @@ function getBestBrainMatch(input, brainData) {
   return null;
 }
 
+function isPromptRequest(text) {
+  const t = text.toLowerCase().trim();
+
+  return (
+    t.startsWith("improve prompt") ||
+    t.startsWith("generate prompt") ||
+    t.startsWith("optimize prompt") ||
+    t.startsWith("create prompt for")
+  );
+}
+
 function fallbackResponse(input) {
-  return `I get what you're asking about: "${input}".\n\nHere’s a simple way to think about it:\n- I can explain it clearly\n- I can give examples\n- I can break it into steps\n\nTell me what you want 👍`;
+  return `About "${input}":\n\nI understand what you're asking, but I want to make sure I answer it properly.\n\nDo you want:\n• a simple explanation\n• real examples\n• or a deeper breakdown?`;
 }
 
 // ── Main engine ───────────────────────────────────────────────────────────────
@@ -157,6 +164,10 @@ export function generateAIResponse(input, history = []) {
 
   if (text.includes("thank")) {
     return "Anytime 👍";
+  }
+
+  if (text.includes("teach me") || text.includes("explain") || text.includes("what is")) {
+    return `${input}\n\nHere’s a simple explanation:\nI’ll break this down clearly if you want more depth 👍`;
   }
 
   // 4. SMART FALLBACK
