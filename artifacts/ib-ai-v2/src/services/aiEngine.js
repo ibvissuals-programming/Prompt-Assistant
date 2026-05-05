@@ -107,33 +107,19 @@ function handleDirect(input) {
 
 // ── Step 2: Semantic scoring engine ──────────────────────────────────────────
 function getBestBrainMatch(input, brainData) {
-  const text = normalize(input);
-
-  let bestScore = 0;
-  let bestResponse = null;
-
   for (const item of brainData) {
-    let score = 0;
-
     for (const tag of item.tags) {
-      const cleanTag = normalize(tag);
-
-      if (text === cleanTag) {
-        score += 5; // exact match
-      } else if (text.includes(cleanTag)) {
-        score += 3; // strong match
-      } else if (cleanTag.split(" ").some(word => text.includes(word))) {
-        score += 1; // weak semantic overlap
+      if (input.toLowerCase().includes(tag.toLowerCase())) {
+        return item.response;
       }
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      bestResponse = item.response;
     }
   }
 
-  return bestScore >= 2 ? bestResponse : null;
+  return null;
+}
+
+function fallbackResponse(input) {
+  return `I get what you're asking about: "${input}".\n\nHere’s a simple way to think about it:\n- I can explain it clearly\n- I can give examples\n- I can break it into steps\n\nTell me what you want 👍`;
 }
 
 // ── Main engine ───────────────────────────────────────────────────────────────
@@ -153,7 +139,15 @@ export function generateAIResponse(input, history = []) {
   if (brainResponse) return brainResponse;
 
   // 3. INTENT MINI LAYER
-  if (text.includes("hello") || text.includes("hi") || text.includes("hey")) {
+  if (text.includes("hello") && text.length < 10) {
+    return "Hey 👋 What's up?";
+  }
+
+  if (text.includes("hi") && text.length < 5) {
+    return "Hey 👋 What's up?";
+  }
+
+  if (text.includes("hey") && text.length < 6) {
     return "Hey 👋 What's up?";
   }
 
@@ -166,7 +160,7 @@ export function generateAIResponse(input, history = []) {
   }
 
   // 4. SMART FALLBACK
-  return `I understand you're asking about "${input}".\n\nHere's how we can approach it:\n• I can define it\n• I can explain it step-by-step\n• I can give real-life examples\n\nJust tell me 👍`;
+  return fallbackResponse(input);
 }
 
 // ── Compatibility exports (used by useChat.js and ChatApp.jsx) ────────────────
