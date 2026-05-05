@@ -54,3 +54,7 @@ export function getCurrentUser() {
 export function logout() {
   localStorage.removeItem(CURRENT_USER_KEY);
 }
+
+export function isAuthenticated() {
+  return !!localStorage.getItem(CURRENT_USER_KEY);
+}
