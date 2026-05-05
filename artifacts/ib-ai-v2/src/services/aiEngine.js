@@ -72,45 +72,6 @@ export function generateAIResponse(input, history = []) {
   }
 
   const text = input.toLowerCase().trim();
-  const enhancedInput = `
-You are required to reason thoroughly before answering.
-
-Follow the 5-step reasoning process strictly.
-
-Question:
-${input}
-
-Do not skip steps.
-`;
-  const prompt = `
-You are IB AI — a strict reasoning engine, not a definition bot.
-
-YOU MUST FOLLOW THIS PROCESS FOR EVERY RESPONSE:
-
-1. RESTATE INTENT
-- What is the user actually asking?
-
-2. DECOMPOSE
-- Break the question into parts
-
-3. REASON STEP-BY-STEP
-- Explain logic clearly in steps
-- No skipping reasoning
-
-4. APPLY REAL-WORLD UNDERSTANDING
-- Use examples, scenarios, or mechanisms
-
-5. FINAL ANSWER
-- Clear, structured conclusion
-- No one-line definitions allowed
-
-STRICT RULES:
-- NEVER answer in a single sentence
-- NEVER give dictionary-style definitions alone
-- NEVER respond with generic quotes or motivational clichés
-- ALWAYS include explanation of HOW or WHY
-- If question is abstract, ground it in real examples
-`;
 
   const direct = handleDirect(text);
   if (direct) return direct;
