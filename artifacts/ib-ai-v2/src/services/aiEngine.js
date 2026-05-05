@@ -107,7 +107,8 @@ export function generateAIResponse(input, history = []) {
   }
 
   // ── Fallback ──
-  return `I get what you're asking about — "${input.length > 60 ? input.slice(0, 60) + '...' : input}".\n\nHere's how I can help:\n- Explain it simply\n- Give examples\n- Break it down step by step\n\nTell me what you want 👍`;
+  const preview = input.length > 80 ? input.slice(0, 80) + '...' : input;
+  return `I understand you're asking about "${preview}".\n\nDo you want:\n- a simple explanation\n- examples\n- or a deeper breakdown?\n\nJust tell me 👍`;
 }
 
 // ─── Safety wrapper (exported, called by useChat) ─────────────────────────────
