@@ -62,48 +62,35 @@ const brain = [
   },
 ];
 
-// ── Normalizer ────────────────────────────────────────────────────────────────
-function normalize(text) {
-  return text.toLowerCase().replace(/[^\w\s]/g, "").trim();
+function normalizeText(text) {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ");
 }
 
-// ── Step 1: Direct handler ────────────────────────────────────────────────────
-function handleDirect(input) {
-  const text = input.toLowerCase().trim();
-
-  if (text.includes("what time") || text.includes("current time")) {
+function handleDirect(text) {
+  if (text.includes("what time")) {
     return `Current time: ${new Date().toLocaleTimeString()}`;
   }
 
-  if (text.includes("what is today") || text.includes("what's today") || text === "date") {
+  if (text.includes("what is today") || text === "date") {
     return `Today is ${new Date().toDateString()}`;
   }
 
-  if (text === "tell me more") {
-    return "What exactly should I expand on?";
-  }
-
-  if (text.includes("who are you") || text.includes("what are you")) {
-    return "I'm IB AI — your assistant for learning and explanations.";
+  if (text.includes("who are you")) {
+    return "I'm IB AI — your assistant for learning and problem solving.";
   }
 
   if (text.includes("what can you do")) {
-    return "I can explain topics, answer questions, and help you learn anything step-by-step.";
-  }
-
-  if (isPromptRequest(input)) {
-    const cleaned = input
-      .replace(/generate a prompt|improve this prompt|optimize prompt/gi, "")
-      .trim();
-    return `Improved Prompt:\n${cleaned}\n\nWhy this works:\nClearer, more specific, and reduces ambiguity.`;
+    return "I can explain topics, answer questions, and help with ideas.";
   }
 
   return null;
 }
 
-// ── Step 2: Semantic scoring engine ──────────────────────────────────────────
-function getBestBrainMatch(input, brainData) {
-  const text = input.toLowerCase();
+function getBestBrainMatch(text, brainData) {
   let bestScore = 0;
   let bestResponse = null;
 
@@ -111,7 +98,7 @@ function getBestBrainMatch(input, brainData) {
     let score = 0;
 
     for (const tag of item.tags) {
-      const t = tag.toLowerCase();
+      const t = normalizeText(tag);
 
       if (text === t) score += 5;
       else if (text.includes(t)) score += 3;
@@ -124,60 +111,51 @@ function getBestBrainMatch(input, brainData) {
     }
   }
 
-  if (bestScore < 3) return null;
+  if (bestScore < 4) return null;
 
   return bestResponse;
 }
 
-function isPromptRequest(text) {
-  const t = text.toLowerCase().trim();
-
-  return (
-    t.startsWith("improve prompt") ||
-    t.startsWith("generate prompt") ||
-    t.startsWith("optimize prompt") ||
-    t.startsWith("create prompt for")
-  );
+function isTooNoisy(text) {
+  return text.split(" ").some(w => w.length <= 2);
 }
 
 function fallbackResponse(input) {
-  return `I’m not fully sure about "${input}".\n\nI can still help you, but I need more clarity.\n\nTry asking:\n• “Explain it simply”\n• “Give an example”\n• or rephrase your question`;
+  return "I don't understand this clearly. Please rephrase it.";
 }
 
-// ── Main engine ───────────────────────────────────────────────────────────────
 export function generateAIResponse(input, history = []) {
   if (!input || typeof input !== "string") {
     return "Please enter a valid message.";
   }
 
-  const text = input.toLowerCase().trim();
+  let text = normalizeText(input);
 
-  // 1. DIRECT LAYER
-  const direct = handleDirect(input);
+  const direct = handleDirect(text);
   if (direct) return direct;
 
-  // 2. BRAIN MATCH (v2 semantic scoring)
-  const brainResponse = getBestBrainMatch(input, brain);
+  if (isTooNoisy(text)) {
+    return "I didn't understand that clearly. Please rephrase it.";
+  }
+
+  const brainResponse = getBestBrainMatch(text, brain);
   if (brainResponse) return brainResponse;
 
-  // 3. SAFE INTENTS
   if (text.includes("hello") || text.includes("hi")) {
     return "Hey 👋 What's up?";
   }
 
-  if (text.includes("joke") || text.includes("funny")) {
-    return "Why did the developer go broke? Because he used up all his cache 😂";
+  if (text.includes("joke")) {
+    return "Why did the developer go broke? Too many cache problems 😂";
   }
 
   if (text.includes("thank")) {
     return "Anytime 👍";
   }
 
-  // 4. FINAL FALLBACK
   return fallbackResponse(input);
 }
 
-// ── Compatibility exports (used by useChat.js and ChatApp.jsx) ────────────────
 export function detectMode(input) {
   if (!input || typeof input !== "string") return "general";
   const text = input.toLowerCase();
