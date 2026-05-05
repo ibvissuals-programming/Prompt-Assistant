@@ -103,15 +103,30 @@ function handleDirect(input) {
 
 // ── Step 2: Semantic scoring engine ──────────────────────────────────────────
 function getBestBrainMatch(input, brainData) {
+  const text = input.toLowerCase();
+  let bestScore = 0;
+  let bestResponse = null;
+
   for (const item of brainData) {
+    let score = 0;
+
     for (const tag of item.tags) {
-      if (input.toLowerCase().includes(tag.toLowerCase())) {
-        return item.response;
-      }
+      const t = tag.toLowerCase();
+
+      if (text === t) score += 5;
+      else if (text.includes(t)) score += 3;
+      else if (t.split(" ").some(w => text.includes(w))) score += 1;
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      bestResponse = item.response;
     }
   }
 
-  return null;
+  if (bestScore < 3) return null;
+
+  return bestResponse;
 }
 
 function isPromptRequest(text) {
@@ -126,7 +141,7 @@ function isPromptRequest(text) {
 }
 
 function fallbackResponse(input) {
-  return `About "${input}":\n\nI understand what you're asking, but I want to make sure I answer it properly.\n\nDo you want:\n• a simple explanation\n• real examples\n• or a deeper breakdown?`;
+  return `I’m not fully sure about "${input}".\n\nI can still help you, but I need more clarity.\n\nTry asking:\n• “Explain it simply”\n• “Give an example”\n• or rephrase your question`;
 }
 
 // ── Main engine ───────────────────────────────────────────────────────────────
@@ -145,16 +160,8 @@ export function generateAIResponse(input, history = []) {
   const brainResponse = getBestBrainMatch(input, brain);
   if (brainResponse) return brainResponse;
 
-  // 3. INTENT MINI LAYER
-  if (text.includes("hello") && text.length < 10) {
-    return "Hey 👋 What's up?";
-  }
-
-  if (text.includes("hi") && text.length < 5) {
-    return "Hey 👋 What's up?";
-  }
-
-  if (text.includes("hey") && text.length < 6) {
+  // 3. SAFE INTENTS
+  if (text.includes("hello") || text.includes("hi")) {
     return "Hey 👋 What's up?";
   }
 
@@ -166,11 +173,7 @@ export function generateAIResponse(input, history = []) {
     return "Anytime 👍";
   }
 
-  if (text.includes("teach me") || text.includes("explain") || text.includes("what is")) {
-    return `${input}\n\nHere’s a simple explanation:\nI’ll break this down clearly if you want more depth 👍`;
-  }
-
-  // 4. SMART FALLBACK
+  // 4. FINAL FALLBACK
   return fallbackResponse(input);
 }
 
