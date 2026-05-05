@@ -1,6 +1,33 @@
 const normalize = (text) =>
   text.toLowerCase().trim().replace(/\s+/g, " ");
 
+// ── Brain map: keyword → response ────────────────────────────────────────────
+const brain = {
+  money: "Money is a medium of exchange used to buy goods and services. It allows trade without barter.",
+  ai: "Artificial Intelligence is the simulation of human intelligence in machines that can learn and solve problems.",
+  reproduction: "Reproduction is the process by which living organisms produce new individuals of the same species.",
+  advice: "Focus on consistency over motivation. Small daily progress builds long-term success.",
+  python: "Python is a high-level, readable programming language great for data science, automation, and web development.",
+  javascript: "JavaScript is the language of the web — it runs in browsers and on servers (Node.js) to build interactive apps.",
+  react: "React is a JavaScript library for building user interfaces using reusable components and a virtual DOM.",
+  code: "Good code is readable, consistent, and easy to change. Start simple, refactor when patterns emerge.",
+  learn: "Learning sticks best when you apply it immediately. Read a concept, then build something small with it.",
+  productivity: "Productivity comes from doing fewer things with full focus — not doing more things at once.",
+  health: "Health is built on three basics: sleep, movement, and nutrition. Improve one and the others follow.",
+  success: "Success is the result of consistent small actions, not occasional big efforts.",
+  motivation: "Motivation follows action — start before you feel ready and momentum builds naturally.",
+  writing: "Good writing is clear thinking on paper. Write your first draft fast, then cut ruthlessly.",
+  explain: "The best way to explain something is to break it into the smallest pieces, then build back up.",
+};
+
+function getBrainResponse(input) {
+  const text = input.toLowerCase();
+  for (const key in brain) {
+    if (text.includes(key)) return brain[key];
+  }
+  return null;
+}
+
 export function generateAIResponse(input, history = []) {
   if (!input || typeof input !== "string") {
     return "Please enter a valid message.";
@@ -55,8 +82,12 @@ export function generateAIResponse(input, history = []) {
     return `Improved Prompt:\n${cleaned}\n\nWhy this works:\nClearer, more specific, and reduces ambiguity.`;
   }
 
-  // 🔵 CLEAN NATURAL RESPONSE
-  return `${input}\n\nIf you want, I can explain it better, give examples, or break it down.`;
+  // 🟠 BRAIN MAP LOOKUP
+  const brainResponse = getBrainResponse(input);
+  if (brainResponse) return brainResponse;
+
+  // 🔵 FALLBACK
+  return "I understand your question, but I need a bit more detail to give a proper answer.";
 }
 
 // ── Compatibility exports (used by useChat.js and ChatApp.jsx) ────────────────
